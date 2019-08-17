@@ -1,0 +1,164 @@
+---
+title: "Protfolio_exercise"
+output: html_document
+---
+
+Please also see the report for more details of the portfolio, in (.pdf) format attached in the same folder!
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mosaic)
+library(quantmod)
+library(foreach)
+```
+
+###Develop 3 different portfolios
+
+# First one: "Invest in China" ! not diversified, focus on 3 equities ETF and 1 money with RMB
+#CQQQ: Invesco China Technology ETF
+#CYB: WisdomTree Chinese Yuan Fund
+#EWH:iShares MSCI Hong Kong ETF 
+#CXSE: WisdomTree China ex-State-Owned Enterprises Fund
+---------------------------------------------------------------------
+###Extract data and adjust
+```{r}
+# Import a few stocks
+myETF = c("CQQQ", "CYB", "EWH", "CXSE")
+myprices = getSymbols(myETF, from = "2014-08-13") #five years ago
+# A chunk of code for adjusting all stocks
+for(ticker in myETF) {
+	expr = paste0(ticker, "a = adjustOHLC(", ticker, ")")
+	eval(parse(text=expr))
+}
+# Combine all the returns in a matrix
+all_returns = cbind(	ClCl(CQQQa),
+								ClCl(CYBa),
+								ClCl(EWHa),
+								ClCl(CXSEa))
+all_returns = as.matrix(na.omit(all_returns))
+head(all_returns)
+# Compute the returns from the closing prices
+```
+###Doing the simulation
+```{r}
+# Run simulation 5000 times 
+initial_wealth = 100000
+sim1 = foreach(i=1:5000, .combine='rbind') %do% {
+	total_wealth = initial_wealth
+	n_days = 20
+	wealthtracker = rep(0, n_days) #initialize a list of 0
+	for(today in 1:n_days) {
+	  weights = c(0.25, 0.25, 0.25, 0.25) #4 ETF in total
+		holdings = weights * total_wealth
+		
+		return.today = resample(all_returns, 1, orig.ids=FALSE)
+		holdings = holdings + holdings*return.today
+		total_wealth = sum(holdings)
+		wealthtracker[today] = total_wealth
+	}
+	wealthtracker
+}
+# Profit/loss
+hist(sim1[,n_days]- initial_wealth, breaks=30, main = "Invest In China Portfolio GAIN&LOSS", xlab = "US dollar", col = "red")
+```
+###Compute VaR with 5% cut.
+```{r}
+quantile((sim1[,n_days]- initial_wealth), probs = c(0.05, 0.95))
+```
+
+-------------------------------------------------------------------------------------------------
+#Portfolio Number 2:
+
+VNG: Vanguard Real Estate Index Fund
+USO: United States Oil Fund
+SHV: iShares Short Treasury Bond ETF
+VCSH: Vanguard Short-Term Corporate Bond ETF
+JPST: JPMorgan Ultra-Short Income ETF
+SCZ: iShares MSCI EAFE Small-Cap ETF
+XLV: Health Care Select Sector SPDR Fund
+GLD: SPDR Gold Trust
+
+run similar simulation as previous portfolio
+```{r}
+myETF = c("VNQ", "USO", "SHV", "VCSH","JPST", "SCZ", "XLV", "GLD")
+myprices = getSymbols(myETF, from = "2014-08-13")
+for(ticker in myETF) {
+	expr = paste0(ticker, "a = adjustOHLC(", ticker, ")")
+	eval(parse(text=expr))
+}
+all_returns = cbind(	ClCl(VNQ),
+								ClCl(USO),
+								ClCl(SHV),
+								ClCl(VCSH),
+								ClCl(JPST),
+								ClCl(SCZ),
+								ClCl(XLV),
+								ClCl(GLD))
+all_returns = as.matrix(na.omit(all_returns))
+head(all_returns)
+```
+```{r}
+initial_wealth = 100000
+sim1 = foreach(i=1:5000, .combine='rbind') %do% {
+	total_wealth = initial_wealth
+	n_days = 20
+	wealthtracker = rep(0, n_days) 
+	for(today in 1:n_days) {
+	  weights = c(0.125, 0.125, 0.125, 0.125,0.125, 0.125, 0.125, 0.125) #8 ETF total
+		holdings = weights * total_wealth
+		return.today = resample(all_returns, 1, orig.ids=FALSE)
+		holdings = holdings + holdings*return.today
+		total_wealth = sum(holdings)
+		wealthtracker[today] = total_wealth
+	}
+	wealthtracker
+}
+# Profit/loss
+hist(sim1[,n_days]- initial_wealth, breaks=30, main = "Diversified Portfolio GAIN&LOSS", xlab = "US dollar", col = "blue")
+```
+###Compute VaR with 5% cut.
+```{r}
+quantile((sim1[,n_days]- initial_wealth), probs = c(0.05, 0.95))
+```
+-------------------------------------------------------------------------------------------------
+#Portfolio Number 3:
+XWEB: SPDR S&P Internet ETF 
+IBUY: Amplify Online Retail ETF
+JSMD: Janus Henderson Small/Md Cp Gr Alpha ETF
+IFLY: ETFMG Drone Economy Strategy ETF
+
+```{r}
+myETF = c("XWEB", "IBUY", "JSMD", "IFLY")
+myprices = getSymbols(myETF, from = "2014-08-13")
+for(ticker in myETF) {
+	expr = paste0(ticker, "a = adjustOHLC(", ticker, ")")
+	eval(parse(text=expr))
+}
+all_returns = cbind(	ClCl(XWEB),
+								ClCl(IBUY),
+								ClCl(JSMD),
+								ClCl(IFLY))
+all_returns = as.matrix(na.omit(all_returns))
+
+initial_wealth = 100000
+sim1 = foreach(i=1:5000, .combine='rbind') %do% {
+	total_wealth = initial_wealth
+	n_days = 20
+	wealthtracker = rep(0, n_days) 
+	for(today in 1:n_days) {
+	  weights = c(0.25, 0.25, 0.25, 0.25)
+		holdings = weights * total_wealth
+		return.today = resample(all_returns, 1, orig.ids=FALSE)
+		holdings = holdings + holdings*return.today
+		total_wealth = sum(holdings)
+		wealthtracker[today] = total_wealth
+	}
+	wealthtracker
+}
+# Profit/loss
+hist(sim1[,n_days]- initial_wealth, breaks=30, main = "Invest In Online/Growing Industries", xlab = "US dollar", col = "green")
+```
+```{r}
+quantile((sim1[,n_days]- initial_wealth), probs = c(0.05, 0.95))
+```
+
