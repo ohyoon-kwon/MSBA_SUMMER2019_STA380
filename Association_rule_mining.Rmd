@@ -1,0 +1,129 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+```{r}
+library(tidyverse)
+library(arules)  # has a big ecosystem of packages built around it
+library(arulesViz)
+```
+
+
+Read in the groceries transactions
+This is in "long" format -- every row is a basket with multiple items per row separated by commas. We separated the items in each basket by commas
+```{r}
+groceries_raw = read.transactions("groceries.txt", sep=',')
+```
+
+Checking if our items are separated correctly
+```{r}
+inspect(head(groceries_raw, 2))
+LIST(head(groceries_raw, 3))
+```
+
+Checking if our items are separated correctly
+```{r}
+inspect(head(groceries_raw, 2))
+LIST(head(groceries_raw, 3))
+```
+
+```{r}
+str(groceries_raw)
+summary(groceries_raw)
+```
+
+Counting the frequencies of each of the grocery items and plotting the top 20 items that appear most frequently.
+```{r}
+frequent = eclat(groceries_raw, parameter = list(supp = 0.07, maxlen = 15))
+inspect(frequent)
+itemFrequencyPlot(groceries_raw, topN=20, type="absolute", main="Item Frequency")
+```
+
+Creating a list of baskets: vectors of items by consumer
+Analagous to bags of words
+
+Cast this variable as a special arules "transactions" class.
+```{r}
+grotrans = as(groceries_raw, "transactions")
+summary(grotrans)
+```
+
+Running the 'apriori' algorithm
+Looking at rules with support > .005 & confidence >.1 & length (# artists) <= 5
+```{r}
+shoppingrules = apriori(grotrans, 
+                     parameter=list(support=.005, confidence=.1, maxlen=5))
+```
+
+Looking at the output
+```{r}
+#inspect(shoppingrules)
+```
+
+
+Choosing a subset
+For our thresholds for lift and confidence, we chose confidence to be greater than 0.5 and lift to be greater than 3.
+When we initially inspected when lift > 4, only four connections were returned. These returns had very low confidence ranging from 0.12 to
+0.44, although the lifts were high. This means that these connections should not be correct most of the time.
+When we inspected for confidence > 0.6, 22 connections were returned. These returns had lifts that were below 3, which means that there is
+a greater chance of the connections being a coincidence compared to when lift is greater than 3.
+Thus, when we inspected for our threshold, 8 connections that were high in both confidence and lift were returned. These connections are
+therefore not just a confidence and they are correct most of the time.
+
+Our choice of threshold is also supported by the Gephi diagram (using Force Atlas). The grocery items that have the most connections are found
+from the connections returned by applying the threshold.
+
+The results from the table returned and the gephi diagram(uploaded as another file on github) makes sense. For example, it is reasonable to claim that customers purchasing onions and root vegetables also purchase other vegetables. Also, it makes sense for customers purchasing curd and tropical fruits to purchase yogurt (a combination of ingredients people usually have).
+```{r}
+inspect(subset(shoppingrules, subset=lift > 4))
+inspect(subset(shoppingrules, subset=confidence > 0.6))
+inspect(subset(shoppingrules, subset=lift > 3 & confidence > 0.5))
+```
+
+
+ploting all the rules in the (support, confidence) space
+Higher lift rules tend to have lower support
+```{r}
+plot(shoppingrules)
+```
+
+Swapping the axes and color scales
+```{r}
+plot(shoppingrules, measure = c("support", "lift"), shading = "confidence")
+```
+
+
+"two key" plot: coloring is by size (order) of item set
+```{r}
+plot(shoppingrules, method='two-key plot')
+```
+
+looking at subsets driven by the plot
+```{r}
+inspect(subset(shoppingrules, support > 0.035))
+inspect(subset(shoppingrules, confidence > 0.5 & lift > 3))
+```
+
+graph-based visualization
+For the visualization, we used the threshold that we chose earlier (confidence > 0.5 & lift > 3). After plotting the subset, we are able
+to clearly see strong connections between the grocery items. We tried using a confidence that was higher, which did not show as many
+interesting and insightful connections.
+
+```{r}
+sub1 = subset(shoppingrules, subset=confidence > 0.5 & lift > 3)
+summary(sub1)
+plot(sub1, method='graph')
+?plot.rules
+```
+
+
+```{r}
+plot(head(sub1, 100, by='lift'), method='graph')
+```
+
+export
+There is a file on github showing the connections after applying 'Force Alas'
+```{r}
+saveAsGraph(head(shoppingrules, n = 1000, by = "lift"), file = "shoppingrules.graphml")
+```
