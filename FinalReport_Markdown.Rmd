@@ -790,7 +790,8 @@ mean(a_w_list$author_name== model1)
 
 
 ### NAIVE BAYES CLASSIFICATION ###
-
+In order to run Naive Bayes, we use the raw counts of the terms rather than the TFIDF; as such, we re-extracted and cleaned the 
+data for both training and test sets.
 ```{r}
 
 #DTM for train
@@ -931,12 +932,11 @@ a_w_listtest[is.na(a_w_listtest)] <- 0
 # a_w_listtest = select(a_w_listtest, -cusersclemedocumentsgithubstadatareuterscctestaaronpressmannewsmltxt)
 ```
 
-```{r}
-
-```
 
 
 
+Removed the columns that don't match for each dataset, then ran Naive Bayes, which gave us an accuracy of 12%, a little higher than
+our KNN, and so we choose NB as our classifcation model. 
 ```{r}
 library(caret)
 library(e1071)
